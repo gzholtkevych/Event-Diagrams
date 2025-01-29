@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Space-Time Diagrams.md",
-                "mode": "preview",
+                "file": "Enumerability.md",
+                "mode": "source",
                 "source": true
               },
               "icon": "lucide-file",
-              "title": "Space-Time Diagrams"
+              "title": "Enumerability"
             }
           }
         ]
@@ -166,10 +166,11 @@
   "active": "4f4f8817eb4a2da2",
   "lastOpenFiles": [
     "Clocks.md",
+    "Enumerability.md",
     "Formal View.md",
-    "Space-Time Diagrams.md",
-    "Conceptual View.md",
     "Events.md",
+    "Conceptual View.md",
+    "Space-Time Diagrams.md",
     "_Templates/note.template.md",
     "_Templates"
   ]

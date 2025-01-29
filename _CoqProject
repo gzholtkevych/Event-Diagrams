@@ -2,7 +2,12 @@
 
 -arg "-w all"
 
-FiniteSets.v
+Enum.v         # contains definitions and basic facts about enumerable universes
+FiniteSets.v   # contains definitions and facts about list-representation of finite sets over enumerable universes
 Vocabulary.v
 Diagram.v
 CausalOrder.v
+
+# Dependencies
+# Enum.v
+#   |- FiniteSets.v

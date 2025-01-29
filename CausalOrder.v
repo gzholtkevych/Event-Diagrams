@@ -147,3 +147,13 @@ Proof.
     apply H4; pose (proj1 (happen_before_event dgm e e H)); assumption. }
   now apply Nat.lt_irrefl with n.
 Qed.
+
+
+Fixpoint initiators (dgm : Diagram) : FSet PID.
+Proof.
+  destruct dgm.
+  destruct participants as (lst, H).
+  induction lst as [| e lst' IHlst'].
+  - exact empty.
+  - exists lst'. inversion H; constructor || assumption.
+  

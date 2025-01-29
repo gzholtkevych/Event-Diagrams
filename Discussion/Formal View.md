@@ -4,10 +4,11 @@
 
 # Clocks
 
-Assume there exists an enumerable collection $\mathtt{clock}$ of atomic entities called clocks.<br/>
-Assume also the Leibniz equality for clocks is decisive, that is, for any two clocks $c_1$ and $c_2$, one can prove whether $c_1=c_2$ or $c_1\neq c_2$.
+Assume there exists an enumerable collection $\mathtt{clock}$ of atomic entities called clocks.
 
-Enumerability of $\mathtt{clock}$ guarantees the existence of a bijection between $\mathtt{clock}$ and the set of natural number $\mathbb{N}$.<br/>
+Assume also that the Leibniz equality for clocks is decidable. It means the existence of an algorithm recognizing whether any two clocks $c_1$ and $c_2$ are equal or not.
+
+[[Enumerability]] of $\mathtt{clock}$ guarantees the existence of a bijection between $\mathtt{clock}$ and the set of natural number $\mathbb{N}$.
 We fix one of such a bijection and denote it by $\mathtt{toNat}:\mathtt{clock}\to\mathbb{N}$.
 We use the notation $\mathtt{nthClock}$ for the function $\mathtt{toNat}^{-1}:\mathbb{N}\to\mathtt{clock}$.
 
