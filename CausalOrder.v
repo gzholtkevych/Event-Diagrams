@@ -2,6 +2,7 @@ Require Import EDiagrams.FiniteSets.
 Require Import EDiagrams.Diagram.
 Require Import EDiagrams.Vocabulary.
 Require Import Coq.Arith.PeanoNat.
+Require Import Arith.Compare_dec.
 Require Import Lists.List.
 
 
@@ -149,11 +150,56 @@ Proof.
 Qed.
 
 
-Fixpoint initiators (dgm : Diagram) : FSet PID.
-Proof.
-  destruct dgm.
-  destruct participants as (lst, H).
-  induction lst as [| e lst' IHlst'].
-  - exact empty.
-  - exists lst'. inversion H; constructor || assumption.
-  
+Section Irreflexivity.
+Variable dgm : Diagram.
+Hypothesis HIrr : forall e, ~ dgm[e --> e].
+
+  Inductive lamport : ETag -> nat -> Prop :=
+  | lamp0 :
+      forall e, event dgm e -> sending dgm e = None -> num e = 0 ->
+        lamport e 0
+  | lamp1 :
+      forall e e' m, event dgm e -> sending dgm e = None -> pid e = pid e' ->
+        num e = S (num e') -> lamport e' m -> lamport e (S m)
+  | lamp2 :
+      forall e e1 e2 m1 m2, event dgm e -> sending dgm e = Some e2 ->
+        pid e = pid e1 -> num e = S (num e1) ->
+        lamport e1 m1 -> lamport e2 m2 ->
+          lamport e (S (max m1 m2)).
+
+  Definition Lamport : Clock dgm.
+  Proof.
+    exists lamport.
+    constructor.
+    2: {
+      intros * Hn Hm.
+      (* destruct e. *)
+      destruct Hn, Hm; trivial.
+      - exfalso. inversion_clear H5. rewrite H1 in H5. discriminate H5.
+      - exfalso. destruct (HIrr e).
+    3: {
+      intros * H1 H2 H3.
+      destruct H2.
+      3: {
+
+      inversion_clear H1.
+      - destruct H1.
+        + destruct H3.
+          * rewrite H0 in H5. rewrite H6 in H5. assumption.
+          * apply le_n_S. apply le_0_n.
+          * apply le_n_S. apply le_0_n.
+        + 
+          
+
+      - intros. exfalso. apply (HIrr e).
+        + constructor; induction Hn; trivial.
+          * destruct Hm.
+
+
+
+
+
+
+
+
+

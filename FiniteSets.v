@@ -1,4 +1,4 @@
-Require Import EDiagrams.Enum.
+Require Export EDiagrams.Enum.
 Require Import Arith.Compare_dec.
 Require Import Lists.List.
 

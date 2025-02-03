@@ -1,5 +1,5 @@
 Require Import EDiagrams.FiniteSets.
-(* Require Import Coq.Arith.Cantor. *)
+
 
 (* Here, the concepts of a participant identifier and
    an event tag is introduced *)
