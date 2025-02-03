@@ -126,7 +126,7 @@ Section Clocks.
 Variable dgm : Diagram.
 
   Class aClock (ts : ETag -> nat -> Prop) : Prop :=
-  { clock_dom : forall e, exists n, ts e n <-> event dgm e
+  { clock_dom : forall e, event dgm e <-> exists n, ts e n
   ; clock_func : forall e n m, ts e n -> ts e m -> n = m
   ; clock_mono : forall e1 e2 n1 n2,
       dgm[e1 --> e2] -> ts e1 n1 -> ts e2 n2 -> n1 < n2
@@ -142,7 +142,11 @@ Theorem clock_irrefl : forall dgm, (exists ts, aClock dgm ts) ->
 Proof.
   intros. destruct H as (ts, H). destruct H as (H1, H2, H3).
   intro.
-  pose (H1' := H1 e). destruct H1' as (n, H4).
+  destruct (H1 e) as (H11, H12).
+  assert (exists n : nat, ts e n). {
+    apply H11. now apply (happen_before_event dgm e).
+  }
+  destruct H0 as (n, H0).
   assert (n < n). {
     apply H3 with (e1 := e) (e2 := e); trivial;
     apply H4; pose (proj1 (happen_before_event dgm e e H)); assumption. }
@@ -156,21 +160,26 @@ Hypothesis HIrr : forall e, ~ dgm[e --> e].
 
   Inductive lamport : ETag -> nat -> Prop :=
   | lamp0 :
-      forall e, event dgm e -> sending dgm e = None -> num e = 0 ->
-        lamport e 0
+      forall e, event dgm e ->
+        sending dgm e = None -> num e = 0 ->
+          lamport e 0
   | lamp1 :
-      forall e e' m, event dgm e -> sending dgm e = None -> pid e = pid e' ->
-        num e = S (num e') -> lamport e' m -> lamport e (S m)
+      forall e e' t, event dgm e ->
+        sending dgm e = None ->
+        pid e = pid e' -> num e = S (num e') ->
+          lamport e' t -> lamport e (S t)
   | lamp2 :
-      forall e e1 e2 m1 m2, event dgm e -> sending dgm e = Some e2 ->
-        pid e = pid e1 -> num e = S (num e1) ->
-        lamport e1 m1 -> lamport e2 m2 ->
-          lamport e (S (max m1 m2)).
+      forall e e1 e2 t1 t2, event dgm e ->
+        sending dgm e = Some e1 ->
+        pid e = pid e2 -> num e = S (num e2) ->
+        lamport e1 t1 -> lamport e2 t2 -> lamport e (S (max t1 t2)).
 
   Definition Lamport : Clock dgm.
   Proof.
     exists lamport.
     constructor.
+    1: {
+      intro.
     2: {
       intros * Hn Hm.
       (* destruct e. *)
@@ -194,6 +203,7 @@ Hypothesis HIrr : forall e, ~ dgm[e --> e].
       - intros. exfalso. apply (HIrr e).
         + constructor; induction Hn; trivial.
           * destruct Hm.
+
 
 
 
