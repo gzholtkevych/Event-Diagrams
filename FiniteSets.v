@@ -393,3 +393,79 @@ Context `{Enum X}.
 
 End RemoveOperation.
 Arguments delete {X} {_}.
+
+
+Section Filtration.
+Variable X : Set.
+Context `{Enum X}.
+
+  Definition subset (A B : FSet X) : Prop := forall x : X, In x A -> In x B.
+
+  Lemma subset_same : forall A B, A =:= B <-> subset A B /\ subset B A.
+  Proof.
+    intros. split.
+    - intro. split; unfold subset; intro; now destruct H0 with x.
+    - intros; unfold subset in H0. destruct H0.
+      split; [ exact (H0 x) | exact (H1 x) ].
+  Qed.
+  Notation "x << y" := (subset x y) (at level 70).
+
+  Fixpoint keep_if (lst : list X) (f : X -> bool) : list X :=
+    match lst with
+    | nil => nil
+    | x :: lst' => if f x then x :: (keep_if lst' f)
+                   else keep_if lst' f
+    end.
+
+  Lemma keep_if_sub_lst : forall (lst : list X) (f : X -> bool) x,
+    In x (keep_if lst f) -> In x lst.
+  Proof.
+    intros.
+    induction lst as [| y lst' IHlst'].
+    - contradiction.
+    - simpl in H0. destruct (f y).
+      + simpl in H0 |-*. destruct H0 as [H0 | H0];
+        [ now left | right; now apply IHlst' ].
+      + right. now apply IHlst'.
+  Qed. 
+
+  Lemma keep_if_keep_inc :
+    forall (lst : list X) (f : X -> bool),
+      increasing lst -> increasing (keep_if lst f).
+  Proof.
+    intros.
+    induction H0; simpl; try destruct (f x);
+    try constructor; simpl in IHincreasing; destruct (f y); trivial.
+    1: now constructor.
+    destruct (keep_if lst f) as [| z lst'] eqn: E.
+    - constructor.
+    - constructor; trivial.
+      assert (In z (y :: lst)).
+      {
+        simpl. destruct (eq_dec y z).
+        - now left.
+        - right. apply keep_if_sub_lst with f. rewrite E. now left.
+      }
+      destruct (lt_eq_lt_dec (tonat y) (tonat z)) as [H3 | H3].
+      2: { 
+        exfalso. apply Nat.lt_irrefl with (tonat z).
+        apply Nat.lt_trans with (tonat y); trivial.
+        apply head_is_min with lst; trivial.
+        destruct H2 as [H2 | H2]; trivial.
+        exfalso. rewrite H2 in H3. now apply Nat.lt_irrefl with (tonat z).
+      }
+      destruct H3 as [H3 | H3].
+      + now apply Nat.lt_trans with (tonat y).
+      + now rewrite <- H3.
+  Qed.
+
+  Definition gen_dif (A : FSet X) (f : X -> bool) : FSet X.
+  Proof.
+    destruct A as (lst, Inc_lst).
+    pose (lst' := keep_if lst f).
+    exists lst'. now apply keep_if_keep_inc.
+  Defined.
+
+End Filtration.
+Arguments subset {X} {_}.
+Notation "x << y" := (subset x y) (at level 70).
