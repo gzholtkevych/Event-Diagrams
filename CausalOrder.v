@@ -157,7 +157,7 @@ Proof.
   now apply Nat.lt_irrefl with n.
 Qed.
 
-
+(*
 Section Irreflexivity.
 Variable dgm : Diagram.
 Hypothesis HIrr : forall e, ~ dgm[e --> e].
@@ -276,7 +276,7 @@ Print initiators.
         sending dgm e = Some e1 ->
         pid e = pid e2 -> num e = S (num e2) ->
           lamport e1 t1 -> lamport e2 t2 -> lamport e (S (max t1 t2)).
-
+*)
 
 
 
