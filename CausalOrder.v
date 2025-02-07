@@ -62,6 +62,10 @@ Section NoIrreflexivity.
         case pid as [| k].
         + now left.
         + case k as [| k']; right; now left.
+      - intros. simpl.
+        do 2 (destruct p; trivial). simpl in H.
+        destruct H as [H | H]; try discriminate H.
+        destruct H as [H | H]; [ discriminate H | trivial ].
       - intros. destruct e as (p, m). compute in H0 |-*.
         trivial.
       - intros. destruct e as (p, n).
@@ -158,51 +162,121 @@ Section Irreflexivity.
 Variable dgm : Diagram.
 Hypothesis HIrr : forall e, ~ dgm[e --> e].
 
+  Definition is_initiator (p : PID) : bool :=
+  (* returns true if In p (particiapnts dgm) and
+             sending dgm {| pid := p; num := 0 |} = None
+             otherwise it returns false *)
+    if FS_in_dec PID p (participants dgm)
+    then
+      match sending dgm {| pid := p; num := 0 |} with
+      | Some _ => false
+      | None => true
+      end
+    else false.
+
+  Lemma is_initiator_correct :
+    forall p : PID, is_initiator p = true <-> In p (participants dgm) /\
+      sending dgm {| pid := p; num := 0 |} = None.
+  Proof.
+    intro. split; intro H.
+    - unfold is_initiator in H.
+      destruct (FS_in_dec PID p (participants dgm)) as [H0 | H0];
+      destruct (sending dgm {| pid := p; num := 0 |});
+      try discriminate H. split; trivial.
+    - destruct H as (H1, H2). unfold is_initiator.
+      destruct (FS_in_dec PID p (participants dgm)) as [H0 | H0].
+      2: { contradiction. }
+      destruct (sending dgm {| pid := p; num := 0 |}); trivial.
+      discriminate H2.
+  Qed.
+
+  Fixpoint initiators_aux (lst : list PID) : list PID :=
+    match lst with
+    | nil => nil
+    | p :: lst' => if is_initiator p then p :: (initiators_aux lst')
+                   else initiators_aux lst'
+    end.
+
+  Lemma initiators_aux_sub_list :
+    forall (lst : list PID) p, In p (initiators_aux lst) -> In p lst.
+  Proof.
+    intros.
+    induction lst as [| q lst' IHlst']; try contradiction.
+    simpl. destruct (eq_dec q p) as [H0 | H0]; try now left.
+    right. apply IHlst'. simpl in H. destruct (is_initiator q);
+    simpl in H; trivial.
+    destruct H; [ contradiction | assumption ].
+  Qed.
+
+  Lemma initiators_aux_keep_inc :
+    forall lst : list PID, increasing lst -> increasing (initiators_aux lst).
+  Proof.
+    intro.
+    destruct lst as [| p lst'].
+    - trivial.
+    - simpl. destruct (is_initiator p); revert p;
+      induction lst' as [| q lst'' IHlst'']; intros.
+      + constructor.
+      + simpl. destruct (is_initiator q).
+        2: { apply IHlst''. now apply inc_without with q. }
+        constructor.
+        * inversion_clear H. trivial.
+        * apply IHlst''. now apply inc_tail with p.
+      + constructor.
+      + simpl. destruct (is_initiator q).
+        2: {
+          apply IHlst'' with q. now apply inc_tail with p.
+        }
+
+
+
+
+
+  Definition initiators : FSet PID.
+  Proof.
+    destruct (participants dgm) as (lst, Inc_lst).
+    pose (f := fix f (lst : list PID) : list PID :=
+            match lst with
+            | nil => nil
+            | p :: lst' => if is_initiator p then p :: (f lst')
+                           else (f lst')
+            end ).
+    exists (f lst).
+    induction lst as [| p lst' IHlst'].
+    - constructor.
+    - simpl. destruct (is_initiator p).
+      2: { apply IHlst'. now apply inc_tail with p. }
+      simpl.
+  Defined.
+
+  Lemma ini_sub_part :
+    forall p : PID, In p initiators -> In p (participants dgm).
+  Proof.
+    intros. apply is_initiator_correct. simpl in H. 
+    assert (is_initiator p = true).
+    {
+      unfold is_initiator.
+      destruct (FS_in_dec PID p (participants dgm)).
+      - destruct (sending dgm {| pid := p; num := 0 |}); trivial.
+    
+ unfold initiators in H.
+    destruct initiators as (lst0, Inc_lst0). simpl in H.
+Print initiators.
+
   Inductive lamport : ETag -> nat -> Prop :=
   | lamp0 :
       forall e, event dgm e ->
-        sending dgm e = None -> num e = 0 ->
-          lamport e 0
-  | lamp1 :
+        sending dgm e = None -> num e = 0 -> lamport e 0
+  | lampl :
       forall e e' t, event dgm e ->
-        sending dgm e = None ->
-        pid e = pid e' -> num e = S (num e') ->
+        sending dgm e = None -> pid e = pid e' -> num e = S (num e') ->
           lamport e' t -> lamport e (S t)
-  | lamp2 :
+  | lamps :
       forall e e1 e2 t1 t2, event dgm e ->
         sending dgm e = Some e1 ->
         pid e = pid e2 -> num e = S (num e2) ->
-        lamport e1 t1 -> lamport e2 t2 -> lamport e (S (max t1 t2)).
+          lamport e1 t1 -> lamport e2 t2 -> lamport e (S (max t1 t2)).
 
-  Definition Lamport : Clock dgm.
-  Proof.
-    exists lamport.
-    constructor.
-    1: {
-      intro.
-    2: {
-      intros * Hn Hm.
-      (* destruct e. *)
-      destruct Hn, Hm; trivial.
-      - exfalso. inversion_clear H5. rewrite H1 in H5. discriminate H5.
-      - exfalso. destruct (HIrr e).
-    3: {
-      intros * H1 H2 H3.
-      destruct H2.
-      3: {
-
-      inversion_clear H1.
-      - destruct H1.
-        + destruct H3.
-          * rewrite H0 in H5. rewrite H6 in H5. assumption.
-          * apply le_n_S. apply le_0_n.
-          * apply le_n_S. apply le_0_n.
-        + 
-          
-
-      - intros. exfalso. apply (HIrr e).
-        + constructor; induction Hn; trivial.
-          * destruct Hm.
 
 
 

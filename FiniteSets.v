@@ -83,7 +83,7 @@ Context `{Enum X}.
       + apply IHlst'; trivial. now apply inc_without with z.
   Qed.
 
-  Definition In_dec (x : X) (A : FSet X) : {In x A} + {~ In x A}.
+  Definition FS_in_dec (x : X) (A : FSet X) : {In x A} + {~ In x A}.
   Proof.
     destruct A as (lst, HInc). simpl.
     induction lst as [| y lst' IHlst'].
@@ -303,7 +303,7 @@ Section RemoveOperation.
 Variable X : Set.
 Context `{Enum X}.
 
-  Fixpoint aux_remove (x : X) (lst : list X) : list X :=
+  Fixpoint aux_delete (x : X) (lst : list X) : list X :=
     match lst with
     | nil       => nil
     | y :: lst' =>
@@ -313,12 +313,12 @@ Context `{Enum X}.
             | left _  => (y :: lst')
             | right _ => lst'
             end
-        | inright _   => y :: (aux_remove x lst')
+        | inright _   => y :: (aux_delete x lst')
         end
     end.
 
-  Lemma aux_remove_keeps_increasing :
-    forall x lst, increasing lst -> increasing (aux_remove x lst).
+  Lemma aux_delete_keeps_increasing :
+    forall x lst, increasing lst -> increasing (aux_delete x lst).
   Proof.
     intros *.
     induction lst as [| y lst' IHlst']; intros.
@@ -337,20 +337,20 @@ Context `{Enum X}.
       now apply inc_tail with y.
   Qed.
 
-  Definition remove (x : X) (A : FSet X) : FSet X.
+  Definition delete (x : X) (A : FSet X) : FSet X.
   Proof.
     destruct A as (lst, H0).
-    exists (aux_remove x lst).
-    now apply aux_remove_keeps_increasing.
+    exists (aux_delete x lst).
+    now apply aux_delete_keeps_increasing.
   Defined.
 
-  Lemma remove_not_In : forall x A, ~ In x (remove x A).
+  Lemma delete_not_In : forall x A, ~ In x (delete x A).
   Proof.
     intros * N. destruct A as (lst, H0). simpl in N.
     induction lst as [| y lst' IHlst']; simpl in N.
     - contradiction.
     - (*revert N.
-      assert (IH : In x (aux_remove x lst') -> False).
+      assert (IH : In x (aux_delete x lst') -> False).
       { apply IHlst'. now apply inc_tail with y. }*)
       destruct (lt_eq_lt_dec (tonat x) (tonat y)) as [H1 | H1].
       2: { apply IHlst'.
@@ -370,8 +370,8 @@ Context `{Enum X}.
         rewrite H2 in H3. now apply Nat.lt_irrefl with (tonat y).
   Qed.
 
-  Lemma remove_not_In_x :
-    forall x (A : FSet X), ~ In x A -> same (remove x A) A.
+  Lemma delete_not_In_x :
+    forall x (A : FSet X), ~ In x A -> same (delete x A) A.
   Proof.
     intros.
     apply same_meaning.
@@ -392,4 +392,4 @@ Context `{Enum X}.
   Qed.
 
 End RemoveOperation.
-Arguments remove {X} {_}.
+Arguments delete {X} {_}.

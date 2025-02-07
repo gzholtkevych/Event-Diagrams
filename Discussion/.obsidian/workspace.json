@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Enumerability.md",
+                "file": "Sequential Computation.md",
                 "mode": "source",
-                "source": true
+                "source": false
               },
               "icon": "lucide-file",
-              "title": "Enumerability"
+              "title": "Sequential Computation"
             }
           }
         ]
@@ -40,7 +40,8 @@
             "state": {
               "type": "file-explorer",
               "state": {
-                "sortOrder": "alphabetical"
+                "sortOrder": "alphabetical",
+                "autoReveal": false
               },
               "icon": "lucide-folder-closed",
               "title": "Файловий менеджер"
@@ -165,13 +166,14 @@
   },
   "active": "4f4f8817eb4a2da2",
   "lastOpenFiles": [
+    "Conceptual View.md",
+    "Sequential Computation.md",
     "Clocks.md",
-    "Enumerability.md",
     "Formal View.md",
     "Events.md",
-    "Conceptual View.md",
-    "Space-Time Diagrams.md",
     "_Templates/note.template.md",
+    "Enumerability.md",
+    "Space-Time Diagrams.md",
     "_Templates"
   ]
 }

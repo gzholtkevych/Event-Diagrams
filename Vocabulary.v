@@ -13,7 +13,7 @@ Proof.
   constructor 1 with tonat. compute. auto.
 Defined.
 
-
+(*
 Definition TimeStamp : Set := nat.  (* The type is inhabited by timestamps *)
 Coercion unwrap_TS (t : TimeStamp) : nat := t.
 
@@ -22,7 +22,7 @@ Proof.
   pose (tonat := fun n : TimeStamp => n).
   constructor 1 with tonat. compute. auto.
 Defined.
-
+*)
 
 Record ETag : Set :=
 (* The type is inhabited by event tags *) 

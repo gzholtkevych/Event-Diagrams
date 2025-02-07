@@ -23,6 +23,10 @@ Variable sending : ETag -> option ETag.
     (* each event related to a diagram is entered in the register of
        some diagram participant *)
       forall e, event e -> In (pid e) participants
+  ; all_participants :
+    (* for each participant p the event tag with pid = p numbered by 0 is
+       event *)
+      forall p : PID, In p participants -> event {| pid := p; num := 0 |}
   ; gaplessness :
     (* numbering in each local ledger has no gap *)
       forall e n, event e -> n < num e -> event {| pid := pid e; num := n |}
