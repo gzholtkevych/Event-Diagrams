@@ -1,7 +1,7 @@
 Require Export EDiagrams.Enum.
 Require Import Arith.Compare_dec.
 Require Import Lists.List.
-
+Require Import Lia.
 
 Section FSetDefinitions.
 Variable X : Set.
@@ -117,8 +117,7 @@ Context `{Enum X}.
     intros *. revert x y.
     induction lst as [| z lst' IHlst']; intros.
     - constructor. 
-    - inversion_clear H1. constructor; trivial.
-      now apply Nat.lt_trans with (tonat y).
+    - inversion_clear H1. constructor; trivial. lia.
   Qed.
 
   Lemma empty_is_nil : forall A, A =:= empty -> nil = A.
@@ -143,7 +142,7 @@ Context `{Enum X}.
       destruct (H0 x2) as (_, H4). simpl in H4.
       assert (H5 : x1 = x2 \/ In x2 lst1). { apply H4. now left. }
       destruct H5 as [H5 | H5]; trivial.
-      exfalso. rewrite H5 in H3. now apply Nat.lt_irrefl with (tonat x2).
+      exfalso. rewrite H5 in H3. lia.
     }
     destruct H3 as [H3 | H3].
     2: { now apply H. }
@@ -153,7 +152,7 @@ Context `{Enum X}.
     destruct (H0 x1) as (H4, _). simpl in H4.
     assert (x2 = x1 \/ In x1 lst2). { apply H4. now left. }
     destruct H5 as [H5 | H5]; trivial.
-    exfalso. rewrite H5 in H3. now apply Nat.lt_irrefl with (tonat x1).
+    exfalso. rewrite H5 in H3. lia.
   Qed.
 
   Lemma same_meaning :
@@ -255,8 +254,7 @@ Context `{Enum X}.
 
   Lemma add_In : forall x A, In x (add x A).
   Proof.
-    intros.
-    destruct A as (lst, H0). simpl.
+    intros x A. destruct A as (lst, H0). simpl.
     induction lst as [| y lst' IHlst'].
     - now left.
     - simpl.
@@ -278,12 +276,12 @@ Context `{Enum X}.
     - simpl. destruct (lt_eq_lt_dec (tonat x) (tonat y)) as [H1 | H1].
       2: {
         destruct H0 as [H0 | H0].
-        - exfalso. rewrite H0 in H1. now apply Nat.lt_irrefl with (tonat x).
+        - exfalso. rewrite H0 in H1. lia.
         - f_equal. apply IHlst'; trivial. now apply inc_tail with y.
       }
       destruct H1 as [H1 | H1]; trivial.
       exfalso. destruct H0 as [H0 | H0].
-      + rewrite H0 in H1. now apply Nat.lt_irrefl with (tonat x).
+      + rewrite H0 in H1. lia.
       + apply Nat.lt_irrefl with (tonat x).
         apply Nat.lt_trans with (tonat y); trivial.
         now apply head_is_min with lst'.
@@ -346,49 +344,43 @@ Context `{Enum X}.
 
   Lemma delete_not_In : forall x A, ~ In x (delete x A).
   Proof.
-    intros * N. destruct A as (lst, H0). simpl in N.
+    intros x (lst, H0) N. simpl in N.
     induction lst as [| y lst' IHlst']; simpl in N.
     - contradiction.
-    - (*revert N.
-      assert (IH : In x (aux_delete x lst') -> False).
-      { apply IHlst'. now apply inc_tail with y. }*)
-      destruct (lt_eq_lt_dec (tonat x) (tonat y)) as [H1 | H1].
-      2: { apply IHlst'.
-           - now apply inc_tail with y.
-           - destruct N as [H2 | H2]; trivial.
-             exfalso. rewrite H2 in H1.
-             now apply Nat.lt_irrefl with (tonat x). }
+    - destruct (lt_eq_lt_dec (tonat x) (tonat y)) as [H1 | H1].
+      2: {
+        apply IHlst'.
+        - now apply inc_tail with y.
+        - destruct N as [H2 | H2]; trivial. exfalso. rewrite H2 in H1. lia.
+      }
       destruct H1 as [H2 | H2].
       + destruct N.
-        * exfalso. rewrite H1 in H2. now apply Nat.lt_irrefl with (tonat x).
+        * exfalso. rewrite H1 in H2. lia.
         * assert (H3 : tonat y < tonat x).
           { now apply head_is_min with lst'. }
-          apply Nat.lt_irrefl with (tonat x).
-          now apply Nat.lt_trans with (tonat y).
+          lia.
       + assert (H3 : tonat y < tonat x).
         { now apply head_is_min with lst'. }
-        rewrite H2 in H3. now apply Nat.lt_irrefl with (tonat y).
+        rewrite H2 in H3. lia.
   Qed.
 
   Lemma delete_not_In_x :
     forall x (A : FSet X), ~ In x A -> same (delete x A) A.
   Proof.
-    intros.
-    apply same_meaning.
-    destruct A as (lst, HIA). simpl.
+    intros x (lst, Inc_lst) N.
+    apply same_meaning. simpl.
     exists lst. split; trivial.
     induction lst as [| y lst' IHlst'].
     - reflexivity.
     - simpl. destruct (lt_eq_lt_dec (tonat x) (tonat y)) as [H1 | H1].
       2: {
-        simpl in H0.
-        f_equal.
-        assert (HIA' : increasing lst'). { now apply inc_tail with y. }
-        apply IHlst' with HIA'. intro. simpl in H2. apply H0. now right.
+        simpl in N. f_equal.
+        assert (Inc_lst' : increasing lst'). { now apply inc_tail with y. }
+        apply IHlst' with Inc_lst'. intro. simpl in H0. apply N. now right.
       }
       destruct H1 as [H1 | H1]; trivial.
-      simpl in H0.
-      exfalso. apply H0. left. symmetry. now apply H.
+      simpl in N.
+      exfalso. apply N. left. symmetry. now apply H.
   Qed.
 
 End RemoveOperation.
@@ -452,10 +444,10 @@ Context `{Enum X}.
         apply Nat.lt_trans with (tonat y); trivial.
         apply head_is_min with lst; trivial.
         destruct H2 as [H2 | H2]; trivial.
-        exfalso. rewrite H2 in H3. now apply Nat.lt_irrefl with (tonat z).
+        exfalso. rewrite H2 in H3. lia.
       }
       destruct H3 as [H3 | H3].
-      + now apply Nat.lt_trans with (tonat y).
+      + lia.
       + now rewrite <- H3.
   Qed.
 
@@ -465,6 +457,22 @@ Context `{Enum X}.
     pose (lst' := keep_if lst f).
     exists lst'. now apply keep_if_keep_inc.
   Defined.
+
+  Lemma gen_dif_sub : forall A f, gen_dif A f << A.
+  Proof.
+    intros (lst, Inc_lst) *. unfold "_ << _". intros. unfold gen_dif in H0.
+    simpl in H0 |-*.
+    induction lst as [| y lst' IHlst'].
+    - contradiction.
+    - simpl in H0 |-*.
+      destruct (f y).
+      + simpl in H0. destruct H0.
+        * now left.
+        * right. apply IHlst'; trivial. now apply inc_tail with y.
+      + right. apply IHlst'.
+        * now apply inc_tail with y.
+        * assumption.
+  Qed.
 
 End Filtration.
 Arguments subset {X} {_}.

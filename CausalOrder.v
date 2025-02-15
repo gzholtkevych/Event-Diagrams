@@ -162,17 +162,34 @@ Section Irreflexivity.
 Variable dgm : Diagram.
 Hypothesis HIrr : forall e, ~ dgm[e --> e].
 
+  Definition launcher (p : PID) : option PID :=
+    (* returns the launcher of p if p is in participants and a launcher exists
+       otherwise returns None *)
+    if FS_in_dec PID p (participants dgm) then
+      match sending dgm {| pid := p; num := 0 |} with
+      | Some e => Some (pid e)
+      | None   => None
+      end
+    else None.
+
+  Lemma hb_launcher : forall p q,
+    Some q = launcher p ->
+      dgm[{| pid := q; num := 0|} --> {| pid := p; num := 0 |}].
+  Proof.
+    intros. destruct (launcher p) as [r |].
+    - constructor.
+    - unfold launcher in H.
+
   Definition is_initiator (p : PID) : bool :=
   (* returns true if In p (particiapnts dgm) and
              sending dgm {| pid := p; num := 0 |} = None
-             otherwise it returns false *)
-    if FS_in_dec PID p (participants dgm)
-    then
-      match sending dgm {| pid := p; num := 0 |} with
+             otherwise returns false *)
+      match launcher p with
       | Some _ => false
-      | None => true
-      end
-    else false.
+      | None   =>
+          if FS_in_dec PID p (participants dgm) then true
+          else false
+      end.
 
   Lemma is_initiator_correct :
     forall p : PID, is_initiator p = true <-> In p (participants dgm) /\
@@ -180,88 +197,27 @@ Hypothesis HIrr : forall e, ~ dgm[e --> e].
   Proof.
     intro. split; intro H.
     - unfold is_initiator in H.
+      unfold launcher in H.
       destruct (FS_in_dec PID p (participants dgm)) as [H0 | H0];
       destruct (sending dgm {| pid := p; num := 0 |});
       try discriminate H. split; trivial.
-    - destruct H as (H1, H2). unfold is_initiator.
+    - destruct H as (H1, H2). unfold is_initiator. unfold launcher.
       destruct (FS_in_dec PID p (participants dgm)) as [H0 | H0].
       2: { contradiction. }
       destruct (sending dgm {| pid := p; num := 0 |}); trivial.
       discriminate H2.
   Qed.
 
-  Fixpoint initiators_aux (lst : list PID) : list PID :=
-    match lst with
-    | nil => nil
-    | p :: lst' => if is_initiator p then p :: (initiators_aux lst')
-                   else initiators_aux lst'
-    end.
+  Definition initiators := gen_dif PID (participants dgm) is_initiator.
 
-  Lemma initiators_aux_sub_list :
-    forall (lst : list PID) p, In p (initiators_aux lst) -> In p lst.
+  Lemma initiators_sub_participants : initiators << participants dgm.
+  Proof. unfold initiators. apply gen_dif_sub. Qed.
+
+  Lemma not_empty_initiators : ~ initiators =:= empty.
   Proof.
-    intros.
-    induction lst as [| q lst' IHlst']; try contradiction.
-    simpl. destruct (eq_dec q p) as [H0 | H0]; try now left.
-    right. apply IHlst'. simpl in H. destruct (is_initiator q);
-    simpl in H; trivial.
-    destruct H; [ contradiction | assumption ].
-  Qed.
-
-  Lemma initiators_aux_keep_inc :
-    forall lst : list PID, increasing lst -> increasing (initiators_aux lst).
-  Proof.
-    intro.
-    destruct lst as [| p lst'].
-    - trivial.
-    - simpl. destruct (is_initiator p); revert p;
-      induction lst' as [| q lst'' IHlst'']; intros.
-      + constructor.
-      + simpl. destruct (is_initiator q).
-        2: { apply IHlst''. now apply inc_without with q. }
-        constructor.
-        * inversion_clear H. trivial.
-        * apply IHlst''. now apply inc_tail with p.
-      + constructor.
-      + simpl. destruct (is_initiator q).
-        2: {
-          apply IHlst'' with q. now apply inc_tail with p.
-        }
-
-
-
-
-
-  Definition initiators : FSet PID.
-  Proof.
+    intro. unfold "_ =:= _" in H.
     destruct (participants dgm) as (lst, Inc_lst).
-    pose (f := fix f (lst : list PID) : list PID :=
-            match lst with
-            | nil => nil
-            | p :: lst' => if is_initiator p then p :: (f lst')
-                           else (f lst')
-            end ).
-    exists (f lst).
-    induction lst as [| p lst' IHlst'].
-    - constructor.
-    - simpl. destruct (is_initiator p).
-      2: { apply IHlst'. now apply inc_tail with p. }
-      simpl.
-  Defined.
-
-  Lemma ini_sub_part :
-    forall p : PID, In p initiators -> In p (participants dgm).
-  Proof.
-    intros. apply is_initiator_correct. simpl in H. 
-    assert (is_initiator p = true).
-    {
-      unfold is_initiator.
-      destruct (FS_in_dec PID p (participants dgm)).
-      - destruct (sending dgm {| pid := p; num := 0 |}); trivial.
-    
- unfold initiators in H.
-    destruct initiators as (lst0, Inc_lst0). simpl in H.
-Print initiators.
+    simpl in H.
 
   Inductive lamport : ETag -> nat -> Prop :=
   | lamp0 :
