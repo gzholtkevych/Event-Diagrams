@@ -20,8 +20,21 @@
               "icon": "lucide-file",
               "title": "Sequential Computation"
             }
+          },
+          {
+            "id": "b5c30759965a6cc1",
+            "type": "leaf",
+            "state": {
+              "type": "release-notes",
+              "state": {
+                "currentVersion": "1.8.7"
+              },
+              "icon": "lucide-book-up",
+              "title": "Release Notes 1.8.7"
+            }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -164,7 +177,7 @@
       "command-palette:Відкрити меню команд": false
     }
   },
-  "active": "4f4f8817eb4a2da2",
+  "active": "b5c30759965a6cc1",
   "lastOpenFiles": [
     "Conceptual View.md",
     "Sequential Computation.md",
