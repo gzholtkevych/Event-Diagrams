@@ -2,7 +2,7 @@
 
 -arg "-w all"
 
-Diagram.v
+Diagrams.v
 CausalOrder.v
 
 # Dependencies

@@ -1,126 +1,121 @@
-Require Import EDiagrams.FiniteSets.
-Require Import EDiagrams.Diagram.
-Require Import EDiagrams.Vocabulary.
+Require Import STDiagrams.Diagrams.
 Require Import Coq.Arith.PeanoNat.
 Require Import Arith.Compare_dec.
 Require Import Lists.List.
 
 
-Section CausalOrder.
-Variable dgm : Diagram.
-
-  Inductive happen_before : ETag -> ETag -> Prop :=
-  | hbline :
+  Inductive happen_before (dgm : Diagram) : PointEvent -> PointEvent -> Prop :=
+  | hbtimeline :
     (* if two events have the same source then their causal order is
        the order of their numbers in the local ledger of their source *)
-      forall e1 e2, event dgm e1 -> event dgm e2 ->
-        pid e1 = pid e2 -> num e1 < num e2 -> happen_before e1 e2
-  | hbcomm :
+      forall e1 e2 : PointEvent, event dgm e1 -> event dgm e2 ->
+        pid e1 = pid e2 -> lts e1 < lts e2 -> happen_before dgm e1 e2
+  | hbarrive :
     (* the sending event of a message causes the receiving of this message *)
-      forall e1 e2, sending dgm e2 = Some e1 -> happen_before e1 e2
+      forall e1 e2, triggering dgm e2 = Some e1 -> happen_before dgm e1 e2
   | hbtrans :
     (* the causal order is transitive *)
       forall e1 e2 e3,
-        happen_before e1 e2 -> happen_before e2 e3 -> happen_before e1 e3.
-
-
-  Lemma happen_before_event :
-  (*  *)
-    forall e1 e2, happen_before e1 e2 -> event dgm e1 /\ event dgm e2.
-  Proof.
-    destruct (diagram_guarantees dgm).
-    intros.
-    induction H; split; trivial.
-    - now apply sending_cod with e2.
-    - apply sending_dom. intro H'. rewrite H in H'. discriminate H'.
-    - exact (proj1 IHhappen_before1).
-    - exact (proj2 IHhappen_before2).
-  Qed.
-End CausalOrder.
+        happen_before dgm e1 e2 -> happen_before dgm e2 e3 ->
+          happen_before dgm e1 e3.
 
 Notation "z [ x --> y ]" := (happen_before z x y)  (at level 70).
 
+
+Lemma happen_before_event_space :
+(*  *)
+  forall dgm e1 e2, dgm[e1 --> e2] -> event dgm e1 /\ event dgm e2.
+Proof.
+  intro. destruct (diagram_constraints dgm). intros.
+  induction H; split; firstorder.
+Qed. 
+
+
 Section NoIrreflexivity.
 
-  Example deadlock : Diagram.
+  Definition event0 := fun e : PointEvent => pid e = 0 \/ pid e = 1.
+  Definition triggering0 := fun e : PointEvent =>
+    let '(p, t) := e in
+    match p with
+    | 0 => match t with
+           | 0 => Some (1, 1)
+           | _ => None
+           end
+    | 1 => match t with
+           | 0 => Some (0, 1)
+           | _ => None
+           end
+    | _ => None
+    end.
+
+  Lemma dom_triggering0 :
+    forall e e' : PointEvent, triggering0 e = Some e' -> triggering0 e <> None.
+  Proof. intros. intro. rewrite H0 in H. discriminate H. Qed.
+
+  Lemma cod_triggering0 :
+    forall e : PointEvent, triggering0 e <> None -> e = (0, 0) \/ e = (1, 0).
   Proof.
-    pose (participants' := @fromlist PID _ (1 :: 0 :: nil)).
-    pose (event' := fun e => match e with
-            | {| pid := S (S _) |} => False
-            | _ => True
-            end).
-    pose (sending' := fun e => match e with
-            | {| num := S _ |} => None
-            | {| pid := 0 |} => Some {| pid := 1; num := 1 |}
-            | {| pid := 1 |} => Some {| pid := 0; num := 1 |}
-            | _ => None
-            end).
-    assert (H : aDiagram participants' event' sending'). {
-      constructor.
-      - constructor.
-      - intros. destruct e. subst participants'. simpl.
-        case pid as [| k].
-        + now left.
-        + case k as [| k']; right; now left.
-      - intros. simpl.
-        do 2 (destruct p; trivial). simpl in H.
-        destruct H as [H | H]; try discriminate H.
-        destruct H as [H | H]; [ discriminate H | trivial ].
-      - intros. destruct e as (p, m). compute in H0 |-*.
-        trivial.
-      - intros. destruct e as (p, n).
-        case p as [| k]; try (now compute).
-        case k as [| k']; try (now compute).
-        destruct n as [| n']; compute in H; contradiction.
-      - intros. destruct e as (p, n).
-        case p as [| k]; destruct n as [| n']; try discriminate H.
-        + simpl in H.
-          assert (e' = {| pid := 1; num := 1 |}). { now injection H. }
-          rewrite H0. now compute.
-        + simpl in H. case k as [| k']; try discriminate H.
-          assert (e' = {| pid := 0; num := 1 |}). { now injection H. }
-          rewrite H0. now compute.
-        + destruct k as [| k']; discriminate H.
-      - intros. destruct e' as (p, n). simpl.
-        destruct p as [| k]; destruct n as [| n'].
-        + compute in H.
-          assert (e = {| pid := 1; num := 1 |}). { now injection H. }
-          rewrite H0. compute. intro. discriminate H1.
-        + destruct n' as [| n'']; try discriminate H.
-        + destruct k as [| k']; try discriminate H.
-          compute in H.
-          assert (e = {| pid := 0; num := 1 |}). { now injection H. }
-          rewrite H0. compute. intro. discriminate H1.
-        + destruct n' as [| n'']; compute in H; destruct k as [| k'];
-          try discriminate H.
-      - intros * H1 H2.
-        destruct e as (p, n), e' as (p1, n1), e'' as (p2, n2).
-        destruct n1 as [| n1']; compute in H1;
-        destruct n2 as [| n2']; compute in H2.
-        + destruct p1 as [| k1], p2 as [| k2]; trivial.
-          destruct k2 as [| k2']; rewrite H2 in H1; discriminate H1.
-          destruct k1 as [| k1']; rewrite H2 in H1; discriminate H1.
-          destruct k1 as [| k1']; destruct k2 as [| k2']; trivial;
-          discriminate H1 || discriminate H2.
-        + destruct p2 as [| k2];
-          discriminate H2 || destruct k2 as [| k2']; discriminate H2.
-        + destruct p1 as [| k1];
-          discriminate H1 || destruct k1 as [| k1']; discriminate H1.
-        + destruct p1 as [| k1], p2 as [| k2];
-          try (discriminate H1 || discriminate H2).
-          destruct k1 as [| k1']; discriminate H1. }
-    constructor 1 with participants' event' sending'; trivial.
+    intros. destruct e as (p, t).
+    destruct p as [| p]; try destruct p as [| p];
+    destruct t as [| t]; try destruct t as [| t]; compute in H;
+    try contradiction; [left | right]; trivial.
+  Qed.
+
+  Instance H : aDiagram event0 triggering0.
+  Proof.
+    constructor.
+    - firstorder.
+    - firstorder; rewrite H; firstorder.
+    - firstorder.
+    - exists 1. firstorder; rewrite H; constructor. constructor.
+    - intros.
+      assert (triggering0 e <> None). { now apply dom_triggering0 with e'. }
+      assert (e = (0, 0) \/ e = (1, 0)). { now apply cod_triggering0. }
+      split.
+      + destruct H1 as [H1 | H1]; rewrite H1; compute; [left | right]; trivial.
+      + destruct H1 as [H1 | H1]; rewrite H1 in H; compute in H;
+        injection H; intro; rewrite <- H2; compute; [right | left]; trivial.
+    - intros.
+      assert (triggering0 e <> None). { now apply dom_triggering0 with e'. }
+      assert (e = (0, 0) \/ e = (1, 0)). { now apply cod_triggering0. }
+      destruct H1 as [H1 | H1]; rewrite H1 in H |-*; compute in H;
+      injection H; intro; rewrite <- H2; compute; intro; discriminate H3.
+    - intros.
+      assert (triggering0 e1 <> None). { now apply dom_triggering0 with e'. }
+      assert (e1 = (0, 0) \/ e1 = (1, 0)). { now apply cod_triggering0. }
+      assert (triggering0 e2 <> None). { now apply dom_triggering0 with e'. }
+      assert (e2 = (0, 0) \/ e2 = (1, 0)). { now apply cod_triggering0. }
+      destruct H3 as [H3 | H3], H5 as [H5 | H5].
+      + rewrite <- H5 in H3. contradiction.
+      + rewrite H3 in H. compute in H. rewrite H5 in H0. compute in H0.
+        rewrite <- H0 in H. injection H. intro. discriminate H6.
+      + rewrite H3 in H. compute in H. rewrite H5 in H0. compute in H0.
+        rewrite <- H0 in H. injection H. intro. discriminate H6.
+      + rewrite <- H5 in H3. contradiction.
+    - intros.
+      assert (triggering0 e' <> None). { now apply dom_triggering0 with e. }
+      assert (e' = (0, 0) \/ e' = (1, 0)). { now apply cod_triggering0. }
+      destruct H1 as [H1 | H1]; rewrite H1 in H; compute in H; injection H;
+      intro; rewrite <- H2; compute; trivial.
+    - intros. intro.
+      assert (triggering0 e' <> None). { now apply dom_triggering0 with e. }
+      assert (e' = (0, 0) \/ e' = (1, 0)). { now apply cod_triggering0. }
+      destruct H2 as [H2 | H2]; rewrite H2 in H0; compute in H0;
+      injection H0; intro; rewrite <- H3 in H; compute in H; apply H; trivial.
   Defined.
 
+  Definition deadlock : Diagram :=
+    {| event := event0; triggering := triggering0; diagram_constraints := H |}.
+
   Lemma deadlock_presence :
-    deadlock[{| pid := 0; num := 0|} --> {| pid := 0; num := 0|}].
+    deadlock[(0, 0) --> (0, 0)].
   Proof.
-    constructor 3 with (e2 := {| pid := 0; num := 1 |}).
-    - constructor 1; compute; trivial.
-    - constructor 3 with (e2 := {| pid := 1; num := 0 |}).
-      + constructor 2. now compute.
-      + constructor 3 with (e2 := {| pid := 1; num := 1 |}).
-        * constructor 1; compute; trivial.
+    constructor 3 with (e2 := (0, 1)).
+    - constructor 1; compute; try left; trivial.
+    - constructor 3 with (e2 := (1, 0)).
+      + constructor 2; trivial.
+      + constructor 3 with (e2 := (1, 1)).
+        * constructor 1; compute; trivial; right; trivial.
         * constructor 2. now compute.
   Qed.
 End NoIrreflexivity.
@@ -129,14 +124,14 @@ End NoIrreflexivity.
 Section Clocks.
 Variable dgm : Diagram.
 
-  Class aClock (ts : ETag -> nat -> Prop) : Prop :=
-  { clock_dom : forall e, event dgm e <-> exists n, ts e n
-  ; clock_func : forall e n m, ts e n -> ts e m -> n = m
-  ; clock_mono : forall e1 e2 n1 n2,
-      dgm[e1 --> e2] -> ts e1 n1 -> ts e2 n2 -> n1 < n2
+  Class aClock (ts : PointEvent -> nat -> Prop) : Prop :=
+  { clock_dom : forall e, event dgm e <-> exists t, ts e t
+  ; clock_func : forall e t1 t2, ts e t1 -> ts e t2 -> t1 = t2
+  ; clock_mono : forall e1 e2 t1 t2,
+      dgm[e1 --> e2] -> ts e1 t1 -> ts e2 t2 -> t1 < t2
   }. 
 
-Definition Clock := { clock : ETag -> nat -> Prop | aClock clock }.
+Definition Clock := { clock : PointEvent -> nat -> Prop | aClock clock }.
 
 End Clocks.
 
@@ -144,17 +139,19 @@ End Clocks.
 Theorem clock_irrefl : forall dgm, (exists ts, aClock dgm ts) ->
   forall e, ~ dgm[e --> e].
 Proof.
-  intros. destruct H as (ts, H). destruct H as (H1, H2, H3).
+  intros. destruct H0 as (ts, H0). destruct H0 as (H1, H2, H3).
   intro.
   destruct (H1 e) as (H11, H12).
-  assert (exists n : nat, ts e n). {
-    apply H11. now apply (happen_before_event dgm e).
+  assert (exists t : nat, ts e t).
+  {
+    apply H11. now apply (happen_before_event_space dgm e).
   }
-  destruct H0 as (n, H0).
-  assert (n < n). {
+  destruct H4 as (t, H4).
+  assert (t < t). {
     apply H3 with (e1 := e) (e2 := e); trivial;
-    apply H4; pose (proj1 (happen_before_event dgm e e H)); assumption. }
-  now apply Nat.lt_irrefl with n.
+    apply H4; pose (proj1 (happen_before_event dgm e e H)); assumption.
+  }
+  now apply Nat.lt_irrefl with t.
 Qed.
 
 

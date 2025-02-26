@@ -2,4 +2,4 @@
 
 %% insert note text below %%
 
-A sequential computation can be understood as a finite or infinite sequence of computational events.
+A sequential computation can be understood as a finite or infinite sequence of computational [[Events|events]].

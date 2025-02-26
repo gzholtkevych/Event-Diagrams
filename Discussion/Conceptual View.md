@@ -6,13 +6,13 @@
 
 %% insert a text here %%
 
-Distributed computation is one of the most used kinds of computation today.
+A distributed computation is one of the most used kinds of computation today.
 It is caused by the main trend of modern Information Technology namely, the migration of data processing to clouds.
 
-This computation is characterized by the following
-1. at least two participants perform this computation;
-2. each participant is a [[Sequential Computation|sequential computational process]] performed by its own processor with isolated memory;
-3. the participants interact by only message-passing via the network joining the processors.
+A distributed computation is characterized by the following
+1. it is performed by at least two participants;
+2. each participant is a [[Sequential Computation|sequential computational process]] performed by its own processor equipped with isolated memory;
+3. the participants' processors are networking and interact by message-passing via this network only.
 
 # Cookbook of the Model
 

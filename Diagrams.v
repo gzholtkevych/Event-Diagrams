@@ -12,40 +12,40 @@ Definition lts (e : PointEvent) : nat := let '(_, t) := e in t.
 (* The class defines constraints on the predicate defined on point-events.
    These constraints provide reasonable requirements in order to consider it
    as the characteristic predicate of an event space.                         *)
-Class anEventSpace
-  (event_space : PointEvent -> Prop)
-  (arrival_trigger : PointEvent -> option PointEvent) : Prop :=
+Class aDiagram
+  (event : PointEvent -> Prop)
+  (triggering : PointEvent -> option PointEvent) : Prop :=
 { (* The timeline of each process is hereditarily closed.                     *)
-  theredity : forall e, event_space e -> event_space (pid e, pred (lts e))
+  theredity : forall e, event e -> event (pid e, pred (lts e))
 ; (* The set of participating process identifiers is hereditarily closed.     *)
-  sheredity : forall e, event_space e -> event_space (pred (pid e), 0)
+  sheredity : forall e, event e -> event (pred (pid e), 0)
 ; (* The processes identified by 0 and 1 are participants always              *)
-  atleast_2 : event_space (0, 0) /\ event_space (1, 0)
+  atleast_2 : event (0, 0) /\ event (1, 0)
 ; (* The number of participating processes is bounded.                        *)
-  sbounded : exists p: nat, forall e, event_space e -> pid e <= p
+  sbounded : exists p: nat, forall e, event e -> pid e <= p
 ; (* Point-events of message sending and receiving are in the event space.      *)
-  arrival_trigger_dom_codom : forall e e',
-    arrival_trigger e = Some e' -> event_space e /\ event_space e'
+  arrival_triggering_dom_codom : forall e e',
+    triggering e = Some e' -> event e /\ event e'
 ; (* Message sender and receiver cannot be the same.                          *)
-  reciiver_is_not_sender :
-    forall e e', arrival_trigger e = Some e' -> pid e <> pid e'
+  receiver_is_not_sender :
+    forall e e', triggering e = Some e' -> pid e <> pid e'
 ; (* A message arrives to its receiver once only.                             *)
   message_arrives_only_once :
     forall e1 e2 e',
-      arrival_trigger e1 = Some e' -> arrival_trigger e2 = Some e' ->
+      triggering e1 = Some e' -> triggering e2 = Some e' -> e1 <> e2 ->
         pid e1 <> pid e2
 ; (* No point-event refers to both messages sending and receiving
      simultaneously.                                                          *)
   sending_isnot_receiving :
-    forall e e', arrival_trigger e' = Some e -> arrival_trigger e = None
+    forall e e', triggering e' = Some e -> triggering e = None
 ; receiving_isnot_sending :
-    forall e, arrival_trigger e <> None ->
-      forall e', arrival_trigger e' <> Some e
+    forall e, triggering e <> None ->
+      forall e', triggering e' <> Some e
 }.
 
 
 Structure Diagram :=
-{ event_space : PointEvent -> Prop
-; arrival_trigger: PointEvent -> option PointEvent
-; diagram_constraints : anEventSpace event_space arrival_trigger
+{ event : PointEvent -> Prop
+; triggering: PointEvent -> option PointEvent
+; diagram_constraints : aDiagram event triggering
 }.
